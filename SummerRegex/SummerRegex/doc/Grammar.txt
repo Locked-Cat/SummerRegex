@@ -1,0 +1,20 @@
+#original
+R->E
+E->E'*' | E'+' | '('E')' | E'|'E | C
+C->c | '\'c | '['c'-'c']' 
+
+#priority
+R->E
+E->E'|'T | T
+T->T'*' | T'+' | F
+F->'('E')' | C
+C->c | '\'c | '['c'-'c']'
+
+#eliminate left recursion
+R->E
+E->TE`
+E`->'|'TE` | ¦Å
+T->FT`
+T`->'*'T` | '+'T` | ¦Å
+F->'('E')' | C
+C-> c | '\'c | '['c'-'c']'
