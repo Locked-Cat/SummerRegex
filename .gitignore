@@ -240,6 +240,3 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
-/SummerRegex/SummerRegex/include/DFA.h
-/SummerRegex/SummerRegex/include
-/SummerRegex/SummerRegex/src

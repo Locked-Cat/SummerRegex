@@ -146,11 +146,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\FA.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\DFA.h" />
+    <ClInclude Include="include\Exception.h" />
+    <ClInclude Include="include\FA.h" />
     <ClInclude Include="include\Parser.h" />
   </ItemGroup>
   <ItemGroup>

@@ -1,20 +1,23 @@
 #original
-R->E
-E->E'*' | E'+' | '('E')' | E'|'E | C
-C->c | '\'c | '['c'-'c']' 
+S->E
+E->ER | '('E')' | E'|'E | C
+R->'*' | '+' | '{'d','d'}'
+C->c | '\'c | '['c'-'c']'  #c represents printable characters
 
 #priority
-R->E
+S->E
 E->E'|'T | T
-T->T'*' | T'+' | F
+T->TD | F
 F->'('E')' | C
+R->'*' | '+' | '{'d','d'}'
 C->c | '\'c | '['c'-'c']'
 
 #eliminate left recursion
-R->E
+S->E
 E->TE`
 E`->'|'TE` | ¦Å
 T->FT`
-T`->'*'T` | '+'T` | ¦Å
+T`->DT` | ¦Å
 F->'('E')' | C
+R->'*' | '+' | '{'d','d'}'
 C-> c | '\'c | '['c'-'c']'
