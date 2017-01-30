@@ -74,6 +74,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\Cat\Source\Repos\SummerRegex\SummerRegex\SummerRegex\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -146,14 +147,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\FA.cpp" />
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="example\main.cpp" />
+    <ClCompile Include="src\AST.cpp" />
+    <ClCompile Include="src\DFA.cpp" />
+    <ClCompile Include="src\NFA.cpp" />
     <ClCompile Include="src\Parser.cpp" />
+    <ClCompile Include="src\Re.cpp" />
+    <ClCompile Include="src\Tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Exception.h" />
-    <ClInclude Include="include\FA.h" />
+    <ClInclude Include="include\AST.h" />
+    <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\DFA.h" />
+    <ClInclude Include="include\NFA.h" />
     <ClInclude Include="include\Parser.h" />
+    <ClInclude Include="include\Re.h" />
+    <ClInclude Include="include\Tokenizer.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="doc\Grammar.txt" />

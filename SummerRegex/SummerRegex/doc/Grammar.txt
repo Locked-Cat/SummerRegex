@@ -1,23 +1,9 @@
-#original
-S->E
-E->ER | '('E')' | E'|'E | C
-R->'*' | '+' | '{'d','d'}'
-C->c | '\'c | '['c'-'c']'  #c represents printable characters
-
-#priority
-S->E
-E->E'|'T | T
-T->TD | F
-F->'('E')' | C
-R->'*' | '+' | '{'d','d'}'
-C->c | '\'c | '['c'-'c']'
-
-#eliminate left recursion
-S->E
-E->TE`
-E`->'|'TE` | ¦Å
-T->FT`
-T`->DT` | ¦Å
-F->'('E')' | C
-R->'*' | '+' | '{'d','d'}'
-C-> c | '\'c | '['c'-'c']'
+RE->ALT
+ALT->ALT_BEGIN ALT_END
+ALT_BEGIN->CONCAT
+ALT_END->'|' ALT | ¦Å
+CONCAT->CONCAT_BEGIN CONCAT_END
+CONCAT_BEGIN->BASE | CLOSURE
+CONCAT_END->CONCAT | ¦Å
+CLOSURE->BASE '*'
+BASE->c | c_range | '(' RE ')'

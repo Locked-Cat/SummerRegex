@@ -1,40 +1,39 @@
 #pragma once
 
-#include <string>
 #include <memory>
 
-#include "FA.h"
+#include "Common.h"
+#include "Tokenizer.h"
+#include "AST.h"
 
 namespace summer
 {
+	using AST = std::unique_ptr<ASTNode>;
+
 	class Parser
 	{
 	public:
-		using string_t = std::string;
-		using char_t = string_t::value_type;
-		using pos_t = string_t::const_iterator;
-
 		Parser() {};
 		Parser(const Parser&) = delete;
 		Parser& operator=(const Parser&) = delete;
 
-		FA Parse(const string_t str);
+		AST Parse(const string_t& str);
 	private:
-		bool HasNext() const;
-		char_t PeekNext() const;
+		AST ParseAlt();
+		AST ParseAltBegin();
+		AST ParseAltEnd();
+		AST ParseConcat();
+		AST ParseConcatBegin();
+		AST ParseConcatEnd();
+		AST ParseBase();
+
+		void InsertEscape(Token& token, std::vector<char_t>& charRange);
+
+		Tokenizer tokenizer;
+		std::vector<Token> mTokens;
+		std::vector<Token>::iterator mPos;
+
+		Token GetToken();
 		void MoveForward();
-
-		//See Grammar.txt
-		void S();
-		void E();
-		void EQuote();
-		void T();
-		void TQuote();
-		FA C();
-		int Number();
-
-		string_t mStr;
-		pos_t mPos;
-		std::unique_ptr<FA> mFA;
 	};
 }
