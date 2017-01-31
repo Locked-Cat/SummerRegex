@@ -18,6 +18,9 @@ namespace summer
 	class DFA
 	{
 	public:
+		DFA()
+			: mStart(-1) {}
+
 		ID AddStatus(bool isFinal = false);
 		void AddEdge(ID src, ID dst, char_t match);
 		
@@ -28,6 +31,7 @@ namespace summer
 
 		ID Goto(ID current, char_t c);
 		bool IsFinal(ID id);
+		void Minimize();
 	private:
 		ID mStart;
 		std::map<ID, DFAStatus> mStatus;

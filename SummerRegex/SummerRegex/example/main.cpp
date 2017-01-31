@@ -6,7 +6,7 @@ using namespace summer;
 
 int main()
 {
-	Re re("[A-Za-z_][A-Za-z_0-9]*");
+	Re re("[A-Za-z_][A-Za-z_0-9]*-");
 	cout << (re.Match("123") == true ? "Match" : "Not match") << endl;
 	return 0;
 }

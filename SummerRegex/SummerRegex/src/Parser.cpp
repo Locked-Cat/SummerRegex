@@ -175,7 +175,7 @@ AST Parser::ParseBase()
 		}
 		else
 		{
-			if (token.mType = TokenType::TOKEN_ESCAPE)
+			if (token.mType == TokenType::TOKEN_ESCAPE)
 			{
 				InsertEscape(token, charRange);
 			}

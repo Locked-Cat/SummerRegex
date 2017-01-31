@@ -33,7 +33,12 @@ ID summer::DFA::Goto(ID current, char_t c)
 	return -1;
 }
 
-bool summer::DFA::IsFinal(ID id)
+bool DFA::IsFinal(ID id)
 {
 	return mStatus[id].mIsFinal;
+}
+
+void DFA::Minimize()
+{
+
 }
