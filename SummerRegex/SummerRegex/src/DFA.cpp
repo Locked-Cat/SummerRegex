@@ -2,6 +2,7 @@
 #include <list>
 #include <set>
 #include <algorithm>
+#include <cstdio>
 
 #include "../include/DFA.h"
 
@@ -108,12 +109,14 @@ void DFA::Minimize()
 	oldIDs.swap(mIDs);
 	map<ID, ID> oldToNew;
 
+	auto flag = true;
 	for (auto& cluster : minimizationSet)
 	{
 		auto newID = AddStatus(oldStatus[*cluster.begin()].mIsFinal);
-		if (cluster.find(mStart) != cluster.end())
+		if (flag && cluster.find(mStart) != cluster.end())
 		{
 			mStart = newID;
+			flag = false;
 		}
 
 		for (auto id : cluster)
@@ -131,5 +134,14 @@ void DFA::Minimize()
 				AddEdge(oldToNew[oldEdges[edge].mSrc], oldToNew[oldEdges[edge].mDst], oldEdges[edge].mMatch);
 			}
 		}
+	}
+}
+
+void DFA::Print()
+{
+	printf("Start: %d\n", mStart);
+	for (auto& edge : mEdges)
+	{
+		printf("%d--%c-->%d\n", edge.mSrc, edge.mMatch, edge.mDst);
 	}
 }

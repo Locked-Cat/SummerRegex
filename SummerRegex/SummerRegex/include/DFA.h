@@ -33,6 +33,7 @@ namespace summer
 		ID Goto(ID current, char_t c);
 		bool IsFinal(ID id);
 		void Minimize();
+		void Print();
 	private:
 		ID mStart;
 		std::map<ID, DFAStatus> mStatus;

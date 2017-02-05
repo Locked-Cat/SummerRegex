@@ -6,7 +6,7 @@ using namespace summer;
 
 int main()
 {
-	Re re("a(ab)*");
-	cout << (re.Match("aabab") == true ? "Match" : "Not match") << endl;
+	Re re("a(ab)*c");
+	cout << (re.Match("aababc") == true ? "Match" : "Not match") << endl;
 	return 0;
 }
