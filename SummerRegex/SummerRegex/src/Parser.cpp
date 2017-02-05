@@ -29,7 +29,7 @@ AST Parser::ParseAltBegin()
 AST Parser::ParseAltEnd()
 {
 	auto token = GetToken();
-	if (token.mType == TokenType::TOKEN_META && token.mContent.c == EOF)
+	if (token.mType == TokenType::TOKEN_META && (token.mContent.c == EOF || token.mContent.c == ')'))
 	{
 		return nullptr;
 	}
@@ -74,7 +74,7 @@ AST Parser::ParseConcatBegin()
 AST Parser::ParseConcatEnd()
 {
 	auto token = GetToken();
-	if (token.mType == TokenType::TOKEN_META && token.mContent.c == EOF)
+	if (token.mType == TokenType::TOKEN_META && (token.mContent.c == EOF || token.mContent.c == ')'))
 	{
 		return nullptr;
 	}
@@ -175,7 +175,7 @@ AST Parser::ParseBase()
 		}
 		else
 		{
-			if (token.mType = TokenType::TOKEN_ESCAPE)
+			if (token.mType == TokenType::TOKEN_ESCAPE)
 			{
 				InsertEscape(token, charRange);
 			}

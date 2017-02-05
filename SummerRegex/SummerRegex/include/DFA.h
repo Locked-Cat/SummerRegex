@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 
 #include "Common.h"
 
@@ -28,9 +29,11 @@ namespace summer
 
 		ID Goto(ID current, char_t c);
 		bool IsFinal(ID id);
+		void Minimize();
 	private:
 		ID mStart;
 		std::map<ID, DFAStatus> mStatus;
 		std::vector<Edge> mEdges;
+		std::set<ID> mIDs;
 	};
 }

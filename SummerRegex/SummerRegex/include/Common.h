@@ -14,6 +14,11 @@ namespace summer
 	{
 		ID mSrc, mDst;
 		char_t mMatch;
+
+		bool operator==(const Edge& edge)
+		{
+			return mSrc == edge.mSrc && mDst == edge.mDst && mMatch == edge.mMatch;
+		}
 	};
 
 	struct Status

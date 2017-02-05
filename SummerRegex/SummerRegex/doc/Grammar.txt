@@ -5,5 +5,5 @@ ALT_END->'|' ALT | ¦Å
 CONCAT->CONCAT_BEGIN CONCAT_END
 CONCAT_BEGIN->BASE | CLOSURE
 CONCAT_END->CONCAT | ¦Å
-CLOSURE->BASE '*'
+CLOSURE->BASE ('*' | '?' | '+' | '{'d','d'}')
 BASE->c | c_range | '(' RE ')'

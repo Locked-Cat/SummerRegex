@@ -2,15 +2,17 @@
 #include <cstdio>
 #include <queue>
 #include <algorithm>
+#include <list>
 
 #include "../include/NFA.h"
 
 using namespace summer;
+using namespace std;
 
 ID NFA::AddStatus()
 {
 	auto id = static_cast<ID>(mStatus.size());
-	mStatus.insert(std::make_pair(id, Status()));
+	mStatus.insert(make_pair(id, Status()));
 	return id;
 }
 
@@ -45,13 +47,13 @@ void NFA::Print()
 	}
 }
 
-std::set<ID> summer::NFA::EpsilonExtend(const std::set<ID>& ids)
+set<ID> summer::NFA::EpsilonExtend(const set<ID>& ids)
 {
-	std::set<ID> result;
+	set<ID> result;
 
 	for (auto s : ids)
 	{
-		std::queue<ID> q;
+		queue<ID> q;
 		q.push(s);
 
 		while (!q.empty())
@@ -75,15 +77,16 @@ std::set<ID> summer::NFA::EpsilonExtend(const std::set<ID>& ids)
 
 void NFA::ConvertToDFA(DFA& m)
 {
-	std::vector<std::set<ID>> DFAStatus;
-	std::vector<ID> DFAIDs;
+	vector<set<ID>> DFAStatus;
+	vector<ID> DFAIDs;
 
 	auto init = EpsilonExtend({ 0 });
 	DFAStatus.push_back(init);
-	DFAIDs.push_back(m.AddStatus(init.find(mEnd) != init.end()));
+	auto isFinal = (init.find(mEnd) != init.end());
+	DFAIDs.push_back(m.AddStatus(isFinal));
 	m.Start() = DFAIDs[0];
 	
-	std::queue<size_t> q;
+	queue<size_t> q;
 	q.push(0);
 	while (!q.empty())
 	{
@@ -92,7 +95,7 @@ void NFA::ConvertToDFA(DFA& m)
 
 		for (auto c : mCharSet)
 		{
-			std::set<ID> status;
+			set<ID> status;
 			for (auto s : DFAStatus[index])
 			{
 				for (auto edge : mStatus[s].mOutEdges)
@@ -109,18 +112,19 @@ void NFA::ConvertToDFA(DFA& m)
 
 			status = EpsilonExtend(status);
 
-			auto iter = std::find(DFAStatus.begin(), DFAStatus.end(), status);
+			auto iter = find(DFAStatus.begin(), DFAStatus.end(), status);
 			if (iter == DFAStatus.end())
 			{
 				DFAStatus.push_back(status);
-				bool isFinal = (status.find(mEnd) != status.end());
+				isFinal = (status.find(mEnd) != status.end());
 				DFAIDs.push_back(m.AddStatus(isFinal));
 				q.push(DFAIDs.size() - 1);
 				iter = DFAStatus.end() - 1;
 			}
 
-			auto dist = std::distance(DFAStatus.begin(), iter);
+			auto dist = distance(DFAStatus.begin(), iter);
 			m.AddEdge(DFAIDs[index], DFAIDs[dist], c);
 		}
 	}
+	m.Minimize();
 }
