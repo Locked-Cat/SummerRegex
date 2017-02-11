@@ -62,6 +62,6 @@ int main()
 ```
 
 效果大概是这样的：
-![test](http://chuantu.biz/t5/47/1486815834x1939653061.png)
+![test](https://github.com/Locked-Cat/SummerRegex/blob/master/test.png)
 
 下一步计划：增加捕获与正向/反向预查功能。
