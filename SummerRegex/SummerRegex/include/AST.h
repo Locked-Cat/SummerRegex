@@ -1,9 +1,10 @@
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <utility>
+#include <set>
 
-#include "Common.h"
+#include "Types.h"
 #include "NFA.h"
 
 namespace summer
@@ -12,19 +13,20 @@ namespace summer
 	{
 	public:
 		virtual ~ASTNode() = 0 {};
-		virtual void Construct(NFA& m) = 0;
+		virtual NFA Construct() = 0;
 	};
 
-	class CharRangeNode
+	class CharSetNode
 		: public ASTNode
 	{
 	public:
-		CharRangeNode(const std::vector<char_t>& charRange)
-			: mCharRange(charRange) {}
+		CharSetNode(const std::set<char_t>& charSet, bool exclude)
+			: mCharSet(charSet), mExclude(exclude) {}
 
-		void Construct(NFA& m) override;
+		NFA Construct() override;
 	private:
-		std::vector<char_t> mCharRange;
+		std::set<char_t> mCharSet;
+		bool mExclude;
 	};
 
 	class AltNode
@@ -34,7 +36,7 @@ namespace summer
 		AltNode(std::unique_ptr<ASTNode> left, std::unique_ptr<ASTNode> right)
 			: mLeft(std::move(left)), mRight(std::move(right)) {}
 
-		void Construct(NFA& m) override;
+		NFA Construct() override;
 	private:
 		std::unique_ptr<ASTNode> mLeft, mRight;
 	};
@@ -46,20 +48,22 @@ namespace summer
 		ConcatNode(std::unique_ptr<ASTNode> left, std::unique_ptr<ASTNode> right)
 			: mLeft(std::move(left)), mRight(std::move(right)) {}
 
-		void Construct(NFA& m) override;
+		NFA Construct() override;
 	private:
 		std::unique_ptr<ASTNode> mLeft, mRight;
 	};
 
-	class ClosureNode
+	class LoopNode
 		: public ASTNode
 	{
 	public:
-		ClosureNode(std::unique_ptr<ASTNode> closure)
-			: mClosure(std::move(closure)) {}
+		LoopNode(std::unique_ptr<ASTNode> closure, int min, int max)
+			: mBody(std::move(closure)), mMin(min), mMax(max) {}
 
-		void Construct(NFA& m) override;
+		NFA Construct() override;
 	private:
-		std::unique_ptr<ASTNode> mClosure;
+		NFA Aux(NFA& body);
+		std::unique_ptr<ASTNode> mBody;
+		int mMin, mMax;
 	};
 }

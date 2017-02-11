@@ -9,62 +9,59 @@
 using namespace summer;
 using namespace std;
 
-ID DFA::AddStatus(bool isFinal)
+DFAStatus DFA::InsertStatus(bool isFinal)
 {
-	auto id = static_cast<ID>(mStatus.size());
-	mStatus.insert(std::make_pair(id, DFAStatus(isFinal)));
-	mIDs.insert(id);
-	return id;
+	mStatus.push_back(DFAStatus(new DFAStatusTag()));
+	mStatus.back()->isFinal = isFinal;
+	return mStatus.back();
 }
 
-void summer::DFA::AddEdge(ID src, ID dst, char_t match)
+void DFA::InsertEdge(DFAStatus src, DFAStatus dst, char_t match)
 {
-	auto edge = Edge{ src, dst, match };
-	if (find(mEdges.begin(), mEdges.end(), edge) != mEdges.end())
-	{
-		return;
-	}
-	mEdges.push_back(edge);
+	mEdges.push_back(DFAEdge(new DFAEdgeTag()));
+	auto edge = mEdges.back();
+	edge->src = src;
+	edge->dst = dst;
+	edge->match = match;
 
-	mStatus[src].mOutEdges.push_back(mEdges.size() - 1);
-	mStatus[dst].mInEdges.push_back(mEdges.size() - 1);
+	src->outEdges.push_back(edge);
+	dst->inEdges.push_back(edge);
 }
 
-ID summer::DFA::Goto(ID current, char_t c)
+DFAStatus DFA::Goto(DFAStatus current, char_t c)
 {
-	assert(mStatus.find(current) != mStatus.end());
-
-	for (auto edge : mStatus[current].mOutEdges)
+	for (auto edge :current->outEdges)
 	{
-		if (mEdges[edge].mMatch == c)
+		if (edge->match == c)
 		{
-			return mEdges[edge].mDst;
+			return edge->dst;
 		}
 	}
-	return -1;
-}
 
-bool DFA::IsFinal(ID id)
-{
-	return mStatus[id].mIsFinal;
+	return nullptr;
 }
 
 void DFA::Minimize()
 {
-	list<set<ID>> minimizationSet{ 2, set<ID>() };
+	list<set<DFAStatus>> minimizationSet{ 2, set<DFAStatus>() };
 	auto finalSet = minimizationSet.begin();
 	auto nonFinalSet = finalSet++;
 
-	for (auto id : mIDs)
+	for (auto s : mStatus)
 	{
-		if (IsFinal(id))
+		if (s->isFinal)
 		{
-			finalSet->insert(id);
+			finalSet->insert(s);
 		}
 		else
 		{
-			nonFinalSet->insert(id);
+			nonFinalSet->insert(s);
 		}
+	}
+
+	if (nonFinalSet->empty())
+	{
+		return;
 	}
 
 	for (auto iter = minimizationSet.begin(); iter != minimizationSet.end();)
@@ -76,14 +73,14 @@ void DFA::Minimize()
 		else
 		{
 			auto hasSplit = false;
-			for (auto id : *iter)
+			for (auto s : *iter)
 			{
-				for (auto& edge : mStatus[id].mOutEdges)
+				for (auto& edge : s->outEdges)
 				{
-					if (iter->find(mEdges[edge].mDst) == iter->end())
+					if (iter->find(edge->dst) == iter->end())
 					{
-						iter->erase(id);
-						minimizationSet.push_front(set<ID>{ id });
+						iter->erase(s);
+						minimizationSet.push_front(set<DFAStatus>{ s });
 						hasSplit = true;
 						break;
 					}
@@ -101,37 +98,35 @@ void DFA::Minimize()
 		}
 	}
 
-	map<ID, DFAStatus> oldStatus;
+	vector<DFAStatus> oldStatus;
 	oldStatus.swap(mStatus);
-	vector<Edge> oldEdges;
+	vector<DFAEdge> oldEdges;
 	oldEdges.swap(mEdges);
-	set<ID> oldIDs;
-	oldIDs.swap(mIDs);
-	map<ID, ID> oldToNew;
-
+	map<DFAStatus, DFAStatus> oldToNew;
+	
 	auto flag = true;
 	for (auto& cluster : minimizationSet)
 	{
-		auto newID = AddStatus(oldStatus[*cluster.begin()].mIsFinal);
-		if (flag && cluster.find(mStart) != cluster.end())
+		auto newStatus = InsertStatus((*(cluster.begin()))->isFinal);
+		if (flag && cluster.find(start) != cluster.end())
 		{
-			mStart = newID;
+			start = newStatus;
 			flag = false;
 		}
 
-		for (auto id : cluster)
+		for (auto s : cluster)
 		{
-			oldToNew.insert(make_pair(id, newID));
+			oldToNew[s] = newStatus;
 		}
 	}
 
 	for (auto& cluster : minimizationSet)
 	{
-		for (auto id : cluster)
+		for (auto s : cluster)
 		{
-			for (auto edge : oldStatus[id].mOutEdges)
+			for (auto edge : s->outEdges)
 			{
-				AddEdge(oldToNew[oldEdges[edge].mSrc], oldToNew[oldEdges[edge].mDst], oldEdges[edge].mMatch);
+				InsertEdge(oldToNew[edge->src], oldToNew[edge->dst], edge->match);
 			}
 		}
 	}
@@ -139,9 +134,14 @@ void DFA::Minimize()
 
 void DFA::Print()
 {
-	printf("Start: %d\n", mStart);
-	for (auto& edge : mEdges)
+	printf("Start: %d\n", Index(start));
+	for (auto edge : mEdges)
 	{
-		printf("%d--%c-->%d\n", edge.mSrc, edge.mMatch, edge.mDst);
+		printf("%d-->%d: %c\n", Index(edge->src), Index(edge->dst), edge->match);
 	}
+}
+
+int DFA::Index(DFAStatus status)
+{
+	return static_cast<int>(distance(mStatus.begin(), find(mStatus.begin(), mStatus.end(), status)));
 }

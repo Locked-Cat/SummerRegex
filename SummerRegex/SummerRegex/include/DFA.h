@@ -3,41 +3,58 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
 
-#include "Common.h"
+#include "Types.h"
 
 namespace summer
 {
-	struct DFAStatus
-		: public Status
+	struct DFAStatusTag;
+	using DFAStatus = std::shared_ptr<DFAStatusTag>;
+	struct DFAEdgeTag;
+	using DFAEdge = std::shared_ptr<DFAEdgeTag>;
+
+	struct DFAEdgeTag
 	{
-		DFAStatus(bool isFinal = false)
-			: Status(), mIsFinal(isFinal) {}
-		bool mIsFinal;
+		DFAStatus src, dst;
+		char_t match;
+	};
+
+	struct DFAStatusTag
+	{
+		std::vector<DFAEdge> inEdges;
+		std::vector<DFAEdge> outEdges;
+		bool isFinal;
 	};
 
 	class DFA
 	{
 	public:
-		DFA()
-			: mStart(-1) {}
-
-		ID AddStatus(bool isFinal = false);
-		void AddEdge(ID src, ID dst, char_t match);
-		
-		ID& Start()
+		DFA(bool init = true) 
 		{
-			return mStart;
+			if (init)
+			{
+				start = InsertStatus();
+			}
 		}
 
-		ID Goto(ID current, char_t c);
-		bool IsFinal(ID id);
+		DFA(const DFA&) = default;
+		DFA& operator=(const DFA&) = default;
+		DFA(DFA&&) = default;
+		DFA& operator=(DFA&&) = default;
+
+		DFAStatus InsertStatus(bool isFinal = false);
+		void InsertEdge(DFAStatus src, DFAStatus dst, char_t match);
+
+		DFAStatus Goto(DFAStatus current, char_t c);
 		void Minimize();
 		void Print();
+
+		DFAStatus start;
 	private:
-		ID mStart;
-		std::map<ID, DFAStatus> mStatus;
-		std::vector<Edge> mEdges;
-		std::set<ID> mIDs;
+		int Index(DFAStatus status);
+
+		std::vector<DFAStatus> mStatus;
+		std::vector<DFAEdge> mEdges;
 	};
 }

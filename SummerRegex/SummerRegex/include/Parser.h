@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-
-#include "Common.h"
+#include <utility>
+#include <set>
+#include "Types.h"
 #include "Tokenizer.h"
 #include "AST.h"
 
@@ -18,22 +19,25 @@ namespace summer
 		Parser& operator=(const Parser&) = delete;
 
 		AST Parse(const string_t& str);
+
+		static std::set<char_t> sLegalCharSet;
 	private:
 		AST ParseAlt();
-		AST ParseAltBegin();
-		AST ParseAltEnd();
 		AST ParseConcat();
-		AST ParseConcatBegin();
-		AST ParseConcatEnd();
 		AST ParseBase();
+		AST ParseFactor();
+		std::pair<int, int> ParseLoop();
+		AST ParseCharSet();
+		void ParseCharRange(std::set<char_t>& charSet);
+		void ParseCharBase(std::set<char_t>& charSet);
+		void ParseX(std::set<char_t>& charSet);
+		char_t ParseChar();
+		int ParseNumber();
 
-		void InsertEscape(Token& token, std::vector<char_t>& charRange);
+		std::shared_ptr<Token> GetToken();
 
 		Tokenizer tokenizer;
-		std::vector<Token> mTokens;
-		std::vector<Token>::iterator mPos;
-
-		Token GetToken();
-		void MoveForward();
+		std::vector<std::shared_ptr<Token>> mTokens;
+		std::vector<std::shared_ptr<Token>>::iterator mPos;
 	};
 }

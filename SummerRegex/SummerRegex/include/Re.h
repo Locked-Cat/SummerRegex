@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Common.h"
+#include "Types.h"
 #include "DFA.h"
 #include "Parser.h"
-#include "Common.h"
 
 namespace summer
 {

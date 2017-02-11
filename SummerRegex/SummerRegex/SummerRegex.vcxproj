@@ -81,6 +81,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\Cat\Source\Repos\SummerRegex\SummerRegex\SummerRegex\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -157,7 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\AST.h" />
-    <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\Types.h" />
     <ClInclude Include="include\DFA.h" />
     <ClInclude Include="include\NFA.h" />
     <ClInclude Include="include\Parser.h" />

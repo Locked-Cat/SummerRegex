@@ -1,53 +1,83 @@
 #pragma once
 
 #include <vector>
-
-#include "Common.h"
+#include <memory>
+#include "Types.h"
 
 namespace summer
 {
 	enum TokenType
 	{
-		TOKEN_CHAR,
-		TOKEN_META,
-		TOKEN_ESCAPE,
-		TOKEN_PLACEHOLDER
+		CHAR,
+		META,
+		END
 	};
 
-	enum EscapeType
+	class Token
 	{
-		ESCAPE_NUM,
-		ESCAPE_ALPHA,
-		ESCAPE_SPACE
+	public:
+		virtual TokenType GetType() const = 0;
+		~Token() {}
 	};
 
-	struct Token
+	template<typename T>
+	typename T::value_type GetValue(const Token& token)
 	{
-		TokenType mType;
+		return dynamic_cast<const T&>(token).value;
+	}
 
-		Token(TokenType type, char_t c)
-			: mType(type)
+
+	class CharToken
+		: public Token
+	{
+	public:
+		using value_type = char_t;
+		friend value_type GetValue<CharToken>(const Token& token);
+
+		CharToken(char c)
+			: value(c) {}
+
+		virtual TokenType GetType() const override
 		{
-			mContent.c = c;
+			return CHAR;
 		}
+	private:
+		char_t value;
+	};
 
-		Token(TokenType type, EscapeType e)
-			:mType(type)
+	class MetaToken
+		: public Token
+	{
+	public:
+		using value_type = char_t;
+		friend value_type GetValue<MetaToken>(const Token& token);
+
+		MetaToken(char c)
+			: value(c) {}
+
+		virtual TokenType GetType() const override
 		{
-			mContent.escape = e;
+			return META;
 		}
+	private:
+		char_t value;
+	};
 
-		union
+	class EndToken
+		: public Token
+	{
+	public:
+		EndToken() {}
+		virtual TokenType GetType() const override
 		{
-			char_t c;
-			EscapeType escape;
-		}mContent;
+			return END;
+		}
 	};
 
 	class Tokenizer
 	{
 	public:
 		Tokenizer() {}
-		std::vector<Token> Tokenize(const string_t& str);
+		std::vector<std::shared_ptr<Token>> Tokenize(const string_t& str);
 	};
 }

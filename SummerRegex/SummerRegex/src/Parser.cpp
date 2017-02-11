@@ -1,249 +1,451 @@
 #include <cctype>
 #include <algorithm>
+#include <exception>
+#include <cctype>
 
 #include "../include/Parser.h"
 
 using namespace summer;
+using namespace std;
+
+set<char_t> Parser::sLegalCharSet({
+	' ','!','"','#','$','%','&','\'',
+	'(',')','*','+',',','-','.','/',
+	'0','1','2','3','4','5','6','7',
+	'8','9',':',';','<','=','>','?',
+	'@','A','B','C','D','E','F','G',
+	'H','I','J','K','L','M','N','O',
+	'P','Q','R','S','T','U','V','W',
+	'X','Y','Z','[','\\',']','^','_',
+	'`','a','b','c','d','e','f','g',
+	'h','i','j','k','l','m','n','o',
+	'p','q','r','s','t','u','v','w',
+	'x','y','z','{','|','}','~','\n',
+	'\t','\r' });
 
 AST Parser::Parse(const string_t& str)
 {
 	mTokens = tokenizer.Tokenize(str);
 	mPos = mTokens.begin();
-
 	return ParseAlt();
 }
 
 AST Parser::ParseAlt()
 {
-	auto begin = ParseAltBegin();
-	auto end = ParseAltEnd();
+	auto concat = ParseConcat();
 
-	return std::unique_ptr<AltNode>(new AltNode(std::move(begin), std::move(end)));
-}
-
-AST Parser::ParseAltBegin()
-{
-	return ParseConcat();
-}
-
-AST Parser::ParseAltEnd()
-{
-	auto token = GetToken();
-	if (token.mType == TokenType::TOKEN_META && (token.mContent.c == EOF || token.mContent.c == ')'))
+	auto token =  GetToken();
+	if (token->GetType() == META)
 	{
-		return nullptr;
+		auto m = GetValue<MetaToken>(*token);
+		if (m == '|')
+		{
+			mPos++;
+			auto alt = ParseAlt();
+			return unique_ptr<AltNode>(new AltNode(move(concat), move(alt)));
+		}
+
+		if (m == ')')
+		{
+			return concat;
+		}
+
+		throw;
 	}
-	else
+
+	if (token->GetType() == END)
 	{
-		if (token.mType != TokenType::TOKEN_META || token.mContent.c != '|')
-		{
-			throw;
-		}
-		else
-		{
-			MoveForward();
-			auto end = ParseAlt();
-			return std::move(end);
-		}
+		return concat;
 	}
+
+	throw;
 }
 
 AST Parser::ParseConcat()
 {
-	auto begin = ParseConcatBegin();
-	auto end = ParseConcatEnd();
-	return std::unique_ptr<ConcatNode>(new ConcatNode(std::move(begin), std::move(end)));
-}
-
-AST Parser::ParseConcatBegin()
-{
 	auto base = ParseBase();
-	auto token = GetToken();
 
-	if (token.mType == TokenType::TOKEN_META && token.mContent.c == '*')
-	{
-		MoveForward();
-		return std::unique_ptr<ClosureNode>(new ClosureNode(std::move(base)));
-	}
-	else
-	{
-		return std::move(base);
-	}
-}
-
-AST Parser::ParseConcatEnd()
-{
 	auto token = GetToken();
-	if (token.mType == TokenType::TOKEN_META && (token.mContent.c == EOF || token.mContent.c == ')'))
+	if (token->GetType() == META)
 	{
-		return nullptr;
+		auto m = GetValue<MetaToken>(*token);
+		if (m == '[' || m == '\\' || m == '(')
+		{
+			auto concat = ParseConcat();
+			return unique_ptr<ConcatNode>(new ConcatNode(move(base), move(concat)));
+		}
+
+		if (m == ')' || m == '|')
+		{
+			return base;
+		}
+
+		throw;
 	}
-	else
+
+	if (token->GetType() == CHAR)
 	{
-		return ParseConcat();
+		auto concat = ParseConcat();
+		return unique_ptr<ConcatNode>(new ConcatNode(move(base), move(concat)));
 	}
+
+	if (token->GetType() == END)
+	{
+		return base;
+	}
+
+	throw;
 }
 
 AST Parser::ParseBase()
 {
-	auto token = GetToken();
-	if (token.mType == TokenType::TOKEN_META && token.mContent.c == '(')
+	auto factor = ParseFactor();
+
+	auto token =  GetToken();
+	if (token->GetType() == META)
 	{
-		MoveForward();
-		auto alt = ParseAlt();
-		token = GetToken();
-		if ( token.mType != TokenType::TOKEN_META || token.mContent.c != ')')
+		auto m = GetValue<MetaToken>(*token);
+		if (m == '{' || m == '*' || m == '+' || m == '?')
 		{
+			auto loop = ParseLoop();
+			return unique_ptr<LoopNode>(new LoopNode(std::move(factor), loop.first, loop.second));
+		}
+
+		if (m == '[' || m == '\\' || m == '(' || m == '|' || m == ')')
+		{
+			return factor;
+		}
+	}
+
+	if (token->GetType() == END || token->GetType() == CHAR)
+	{
+		return factor;
+	}
+
+	throw;
+}
+
+AST Parser::ParseFactor()
+{
+	auto token =  GetToken();
+	
+	if (token->GetType() == META)
+	{
+		switch (GetValue<MetaToken>(*token))
+		{
+		case '[':
+			return ParseCharSet();
+		case '\\':
+		{
+			mPos++;
+			token = GetToken();
+			if (token->GetType() == META)
+			{
+				mPos--;
+				auto c = ParseChar();
+				return unique_ptr<CharSetNode>(new CharSetNode(set<char_t>{c}, false));
+			}
+			
+			if(token->GetType() == CHAR)
+			{
+				mPos--;
+				return ParseCharSet();
+			}
+			
 			throw;
 		}
-		MoveForward();
-		return alt;
-	}
-	else
-	{
-		std::vector<char_t> charRange;
-		if (token.mType == TokenType::TOKEN_META && token.mContent.c == '[')
+		case '(':
 		{
-			MoveForward();
-			auto end = std::find_if(mPos, mTokens.end(), [](Token& token) {return token.mType == TokenType::TOKEN_META && token.mContent.c == ']'; });
-			if (end == mTokens.end())
+			mPos++;
+			auto alt = ParseAlt();
+			token =  GetToken();
+			if (token->GetType() == META && GetValue<MetaToken>(*token) == ')')
 			{
-				throw;
+				mPos++;
+				return alt;
 			}
 
-			auto start = std::find_if(mPos, end, [](Token& token) {return token.mType == TokenType::TOKEN_META && token.mContent.c == '-'; });
-			while (start != end)
-			{
-				if ((start - 1)->mType == TokenType::TOKEN_CHAR && (start + 1)->mType == TokenType::TOKEN_CHAR)
-				{
-					auto lower = (start - 1)->mContent.c;
-					auto upper = (start + 1)->mContent.c;
-
-					if (lower > upper)
-					{
-						throw;
-					}
-					else
-					{
-						for (auto c = lower; c <= upper; ++c)
-						{
-							charRange.push_back(c);
-						}
-					}
-
-					(start - 1)->mType = TokenType::TOKEN_PLACEHOLDER;
-					start->mType = TokenType::TOKEN_PLACEHOLDER;
-					(start + 1)->mType = TokenType::TOKEN_PLACEHOLDER;
-
-					start = std::find_if(start + 2, end, [](Token& token) {return token.mType == TokenType::TOKEN_META && token.mContent.c == '-'; });
-				}
-				else
-				{
-					throw;
-				}
-			}
-
-			while (mPos != end)
-			{
-				auto token = GetToken();
-
-				if (token.mType == TokenType::TOKEN_ESCAPE)
-				{
-					InsertEscape(token, charRange);
-				}
-				else
-				{
-					if (token.mType == TokenType::TOKEN_CHAR)
-					{
-						charRange.push_back(token.mContent.c);
-					}
-					else
-					{
-						if (token.mType == TokenType::TOKEN_PLACEHOLDER)
-						{
-							MoveForward();
-							continue;
-						}
-						else
-						{
-							throw;
-						}
-					}
-				}
-				MoveForward();
-			}
+			throw;
 		}
-		else
+		default:
+			throw;
+		}
+	}
+
+	if(token->GetType() == CHAR)
+	{
+		auto c = ParseChar();
+		return unique_ptr<CharSetNode>(new CharSetNode(set<char_t>{c}, false));
+	}
+
+	throw;
+}
+
+pair<int, int> Parser::ParseLoop()
+{
+	auto token =  GetToken();
+	if (token->GetType() == META)
+	{
+		switch (GetValue<MetaToken>(*token))
 		{
-			if (token.mType == TokenType::TOKEN_ESCAPE)
+		case '{':
+		{
+			mPos++;
+			int min, max;
+			token = GetToken();
+			if (token->GetType() == META && GetValue<MetaToken>(*token) == ',')
 			{
-				InsertEscape(token, charRange);
+				mPos++;
+				min = 0;
+				max = ParseNumber();
 			}
 			else
 			{
-				if (token.mType == TokenType::TOKEN_CHAR)
+				min = max = ParseNumber();
+				
+				token = GetToken();
+				if (token->GetType() == META && GetValue<MetaToken>(*token) == ',')
 				{
-					charRange.push_back(token.mContent.c);
-				}
-				else
-				{
-					throw;
+					mPos++;
+					token = GetToken();
+
+					if (token->GetType() == META && GetValue<MetaToken>(*token) == '}')
+					{
+						mPos++;
+						return make_pair(min, -1);
+					}
+					else
+					{
+						max = ParseNumber();
+					}
 				}
 			}
+
+			token =  GetToken();
+			if (token->GetType() == META && GetValue<MetaToken>(*token) == '}')
+			{
+					mPos++;
+					return make_pair(min, max);
+			}
+
+			throw;
 		}
-		std::sort(charRange.begin(), charRange.end());
-		auto last = std::unique(charRange.begin(), charRange.end());
-		MoveForward();
-		return std::unique_ptr<CharRangeNode>(new CharRangeNode(std::vector<char_t>(charRange.begin(), last)));
+		case '*':
+			mPos++;
+			return make_pair(0, -1);
+		case '+':
+			mPos++;
+			return make_pair(1, -1);
+		case '?':
+			mPos++;
+			return make_pair(0, 1);
+		default:
+			throw;
+		}
 	}
+
+	throw;
 }
 
-void Parser::InsertEscape(Token & token, std::vector<char_t>& charRange)
+AST Parser::ParseCharSet()
 {
-	switch (token.mContent.escape)
+	auto token =  GetToken();
+	if (token->GetType() == META)
 	{
-	case EscapeType::ESCAPE_NUM:
-	{
-		for (auto c = '0'; c <= '9'; ++c)
+		if (GetValue<MetaToken>(*token) == '[')
 		{
-			charRange.push_back(c);
+			mPos++;
+			auto exclude = false;
+			token = GetToken();
+
+			if (token->GetType() == META && GetValue<MetaToken>(*token) == '^')
+			{
+				mPos++;
+				exclude = true;
+			}
+
+			set<char_t> charSet;
+			ParseCharRange(charSet);
+			auto& token =  GetToken();
+			if (token->GetType() == META && GetValue<MetaToken>(*token) == ']')
+			{
+				mPos++;
+				return unique_ptr<CharSetNode>(new CharSetNode(charSet, exclude));
+			}
+
+			throw;
 		}
-		break;
-	}
-	case EscapeType::ESCAPE_SPACE:
-	{
-		charRange.push_back(' ');
-		charRange.push_back('\t');
-		charRange.push_back('\n');
-		break;
-	}
-	case EscapeType::ESCAPE_ALPHA:
-	{
-		for (auto c = 'a'; c <= 'z'; ++c)
+
+		if (GetValue<MetaToken>(*token) == '\\')
 		{
-			charRange.push_back(c);
-			charRange.push_back('A' + c - 'a');
+			mPos++;
+			set<char_t> charSet;
+			ParseX(charSet);
+			return unique_ptr<CharSetNode>(new CharSetNode(charSet, false));
 		}
-		break;
+
+		if (GetValue<MetaToken>(*token) == '.')
+		{
+			mPos++;
+			return unique_ptr<CharSetNode>(new CharSetNode(sLegalCharSet, false));
+		}
+
+		throw;
 	}
-	default:
-		break;
+
+	throw;
+}
+
+void Parser::ParseCharRange(set<char_t>& charSet)
+{
+	ParseCharBase(charSet);
+	
+	auto token =  GetToken();
+	if (token->GetType() == CHAR || (token->GetType() == META && GetValue<MetaToken>(*token) == '\\'))
+	{
+		ParseCharRange(charSet);
 	}
 }
 
-Token Parser::GetToken()
+void Parser::ParseCharBase(set<char_t>& charSet)
+{
+	auto c0 = ParseChar();
+
+	auto token =  GetToken();
+	if (token->GetType() == META && GetValue<MetaToken>(*token) == '-')
+	{
+		mPos++;
+		auto c1 = ParseChar();
+		if (c0 <= c1)
+		{
+			for (auto c = c0; c <= c1; ++c)
+			{
+				charSet.insert(c);
+			}
+			return;
+		}
+		
+		throw;
+	}
+	else
+	{
+		charSet.insert(c0);
+	}
+}
+
+void Parser::ParseX(set<char_t>& charSet)
+{
+	auto token =  GetToken();
+	if (token->GetType() == CHAR)
+	{
+		switch (GetValue<CharToken>(*token))
+		{
+		case 'w':
+		{
+			for (auto c = 'a'; c <= 'z'; ++c)
+			{
+				charSet.insert(c);
+				charSet.insert(c - 'a' + 'A');
+			}
+			mPos++;
+			return;
+		}
+		case 'd':
+		{
+			for (auto c = '0'; c <= '9'; ++c)
+			{
+				charSet.insert(c);
+			}
+			mPos++;
+			return;
+		}
+		case 's':
+		{
+			charSet.insert(' ');
+			charSet.insert('\n');
+			charSet.insert('\t');
+			charSet.insert('\r');
+		}
+		default:
+			throw;
+		}
+	}
+
+	throw;
+}
+
+char_t Parser::ParseChar()
+{
+	auto token =  GetToken();
+	if (token->GetType() == META && GetValue<MetaToken>(*token) == '\\')
+	{
+		mPos++;
+		auto token =  GetToken();
+		if (token->GetType() == META)
+		{
+			auto c =  GetValue<MetaToken>(*token);
+			mPos++;
+			return c;
+		}
+
+		if (token->GetType() == CHAR)
+		{
+			auto c = GetValue<CharToken>(*token);
+			switch (c)
+			{
+			case 'n':
+				c = '\n';
+				break;
+			case 't':
+				c = '\t';
+				break;
+			case 'r':
+				c = '\r';
+				break;
+			default:
+				throw;
+			}
+			mPos++;
+			return c;
+		}
+
+		throw;
+	}
+
+	if (token->GetType() == CHAR)
+	{
+		mPos++;
+		return GetValue<CharToken>(*token);
+	}
+
+	throw;
+}
+
+int Parser::ParseNumber()
+{
+	auto token = GetToken();
+	if (token->GetType() == CHAR && isdigit(GetValue<CharToken>(*token)))
+	{
+		auto value = GetValue<CharToken>(*token) - '0';
+		++mPos;
+		while (token = GetToken(), token->GetType() == CHAR && isdigit(GetValue<CharToken>(*token)))
+		{
+			auto value = GetValue<CharToken>(*token) - '0';
+			++mPos;
+		}
+
+		return value;
+	}
+	
+	throw;
+}
+
+shared_ptr<Token> Parser::GetToken()
 {
 	if (mPos != mTokens.end())
 	{
 		return *mPos;
 	}
-	else
-	{
-		throw;
-	}
-}
 
-void Parser::MoveForward()
-{
-	mPos += 1;
+	throw;
 }

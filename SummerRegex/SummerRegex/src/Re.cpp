@@ -6,47 +6,47 @@ using namespace summer;
 Re::Re(const string_t& pattern)
 {
 	auto ast = mParser.Parse(pattern);
-	NFA m;
-	ast->Construct(m);
-	m.ConvertToDFA(mAutomat);
+	auto nfa = ast->Construct();
+	mAutomat = nfa.ConvertToDFA();
 }
 
 bool Re::Match(const string_t& str)
 {
-	auto status = mAutomat.Start();
+	auto status = mAutomat.start;
 
 	for (auto c : str)
 	{
 		status = mAutomat.Goto(status, c);
-		if (status == -1)
+		if (status == nullptr)
+		{
 			return false;
+		}
 	}
 
-	return mAutomat.IsFinal(status);
+	return status->isFinal;
 }
 
 SearchResult Re::Search(const string_t & str)
 {
-	mAutomat.Print();
 	auto result = SearchResult();
 	auto pos = str.begin();
 
 	while (pos != str.end())
 	{
-		auto status = mAutomat.Start();
-		auto lastStatus = -1;
+		auto status = mAutomat.start;
+		auto lastStatus = status;
 		auto end = pos;
 
-		while (end != str.end() && status != -1)
+		while (end != str.end() && status != nullptr)
 		{
 			lastStatus = status;
 			status = mAutomat.Goto(status, *end);
 			end++;
 		}
 
-		if (status != -1)
+		if (status != nullptr)
 		{
-			if (mAutomat.IsFinal(status))
+			if (status->isFinal)
 			{
 				result.location = std::distance(str.begin(), pos);
 				result.length = std::distance(pos, end);
@@ -57,7 +57,7 @@ SearchResult Re::Search(const string_t & str)
 		}
 		else
 		{
-			if (mAutomat.IsFinal(lastStatus))
+			if (lastStatus->isFinal)
 			{
 				result.location = std::distance(str.begin(), pos);
 				result.length = std::distance(pos, end - 1);
